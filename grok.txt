@@ -1,0 +1,1 @@
+%{YEAR}[./-]%{MONTHNUM}[./-]%{MONTHDAY}%{SPACE}%{TIME}\s+(\[%{WORD:pid}\s+%{POSINT:pid}])\s+(\[%{NUMBER:responsetime}\ms)]\s+(\[%{WORD:uid}\s+%{WORD:uidname}])\s+(\[%{LOGLEVEL:loglevel}])\s+(%{URIPATHPARAM:request})\s+%{GREEDYDATA:syslog_message}

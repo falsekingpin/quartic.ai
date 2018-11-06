@@ -1,0 +1,1 @@
+%{MONTHDAY}[./-]%{MONTHNUM}[./-]%{YEAR}%{SPACE}%{TIME}\,%{POSINT:secs}\s+(\[%{WORD:filename}\.py)\:%{POSINT:line-no:int}]\s+%{WORD:module}\s+:\s+%{WORD:method}\s+:\s+%{UUID:uniqueID}\s+:\s+%{WORD:service-status}\s+:\s+%{NUMBER:unixTime:int}

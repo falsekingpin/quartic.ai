@@ -3,9 +3,11 @@ __author__ = "Akshay Nar"
 
 from pygrok import Grok
 from pymongo import MongoClient
+from datetime import datetime,timedelta
 
 class ProcessLogFiles:
-    infile = r"/home/user/Personal-Work/log_problem/out.log"
+    filename = "/home/user/Personal-Work/log_problem/out.log"
+    # infile = r"/home/user/Personal-Work/log_problem/out.log"
     client = MongoClient()
     db = client.test_database
     collection = db.test_collection
@@ -16,16 +18,9 @@ class ProcessLogFiles:
     responsetime = "responsetime"
 
     def process_logic(self):
-        with open(self.infile) as f:
-            text = f.readlines()
-
-        for line in text:
-            for phrase in self.keep_phrases:
-                if phrase in line:
-                    pattern = '%{TIMESTAMP_ISO8601:timestamp}%{SPACE}(\[%{WORD:pid}%{SPACE}%{POSINT:pid}])%{SPACE}(\[%{NUMBER:responsetime}?ms])%{SPACE}(\[%{WORD:uid}\s+%{WORD:uidname}])%{SPACE}(\[%{LOGLEVEL:loglevel}])%{SPACE}(%{URIPATHPARAM:request})%{SPACE}%{GREEDYDATA:syslog_message}'
-                    grok = Grok(pattern)
-                    grok_json = grok.match(line)
-                    post_id = self.collection.insert_one(grok_json).inserted_id
+        self.insert_data_from_file(self.filename)
+        self.format_data()
+        self.insert_file_no(self.filename)
 
     def format_data(self):
         for obj in self.collection.find():
@@ -39,6 +34,33 @@ class ProcessLogFiles:
                 if type(obj[self.responsetime]) is not str:
                     rtime = int(obj[self.responsetime])
                     self.collection.update({'_id':obj['_id']},{'$set':{self.responsetime : rtime}})
+
+
+    def insert_file_no(self,filename):
+        num_lines = sum(1 for line in open(self.filename))
+        self.collection.insert_one(
+            {"filename" : filename},
+            { "lastline" : num_lines})
+
+    def insert_data_from_file(self,filename):
+        with open(filename) as f:
+            text = f.readlines()
+
+        for line in text:
+            for phrase in self.keep_phrases:
+                if phrase in line:
+                    pattern = '%{TIMESTAMP_ISO8601:timestamp}%{SPACE}(\[%{WORD:pid}%{SPACE}%{POSINT:pid}])%{SPACE}(\[%{NUMBER:responsetime}?ms])%{SPACE}(\[%{WORD:uid}\s+%{WORD:uidname}])%{SPACE}(\[%{LOGLEVEL:loglevel}])%{SPACE}(%{URIPATHPARAM:request})%{SPACE}%{GREEDYDATA:syslog_message}'
+                    grok = Grok(pattern)
+                    grok_json = grok.match(line)
+                    post_id = self.collection.insert_one(grok_json).inserted_id
+
+    def insert_data(self,data):
+        doc_id = self.collection.insert_one(data)
+        return doc_id
+
+    def format_single_doc(self,doc_id):
+        self.collection.update({'_id':doc_id},{'$set':{self.timestamp : time}})
+        self.collection.update({'_id':doc_id},{'$set':{self.responsetime : rtime}})
 
 if __name__ == '__main__':
     ProcessLogFiles().process_logic()

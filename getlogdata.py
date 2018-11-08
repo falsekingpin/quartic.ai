@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.patches as mpatches
 
 
-class GetData:
+class GetData:  
     client = MongoClient()
     db = client.test_database
     collection = db.test_collection

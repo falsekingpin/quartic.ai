@@ -15,8 +15,8 @@ import matplotlib.patches as mpatches
 
 class GetData:  
     client = MongoClient()
-    db = client.test_database
-    collection = db.test_collection
+    db = client.log_database
+    collection = db.log_collection
     slots = 10
     plot_data = []
     x_axis_data = []

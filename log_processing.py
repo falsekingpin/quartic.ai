@@ -40,7 +40,7 @@ class ProcessLogFiles:
 
 
     def insert_file_no(self,filename):
-        num_lines = sum(1 for line in open(self.filename))
+        num_lines = self.get_total_number_of_lines(filename)
         print(num_lines)
         post_id = self.line_collection.insert_one(
             { filename.split('.')[0] : num_lines}).inserted_id
@@ -49,8 +49,12 @@ class ProcessLogFiles:
     def insert_data_from_file(self,filename):
         with open(filename) as f:
             text = f.readlines()
-
-        for line in text:
+        self.insert_log_data(text)
+    
+    def insert_log_data(self,data):
+        print("Data : {}".format(data))
+        for line in data:
+            print("+++++++ : {} ".format(line))
             for phrase in self.keep_phrases:
                 if phrase in line:
                     pattern = '%{TIMESTAMP_ISO8601:timestamp}%{SPACE}(\[%{WORD:pid}%{SPACE}%{POSINT:pid}])%{SPACE}(\[%{NUMBER:responsetime}?ms])%{SPACE}(\[%{WORD:uid}\s+%{WORD:uidname}])%{SPACE}(\[%{LOGLEVEL:loglevel}])%{SPACE}(%{URIPATHPARAM:request})%{SPACE}%{GREEDYDATA:syslog_message}'
@@ -59,6 +63,7 @@ class ProcessLogFiles:
                     post_id = self.insert_data(grok_json)
                     # post_id = self.collection.insert_one(grok_json).inserted_id
                     print(post_id)
+                    self.format_single_doc(post_id,grok_json)
 
     def insert_data(self,data):
         doc_id = None
@@ -68,9 +73,15 @@ class ProcessLogFiles:
             print("Found filename key")
         return doc_id
 
-    def format_single_doc(self,doc_id):
+    def format_single_doc(self,doc_id,obj):
+        time = datetime.strptime(obj[self.timestamp],self.date_format)
+        rtime = int(obj[self.responsetime])
         self.collection.update({'_id':doc_id},{'$set':{self.timestamp : time}})
         self.collection.update({'_id':doc_id},{'$set':{self.responsetime : rtime}})
+
+    def get_total_number_of_lines(self,filename):
+        return sum(1 for line in open(filename))
+
 
 if __name__ == '__main__':
     ProcessLogFiles().process_logic()

@@ -47,12 +47,24 @@ class RealTimeProcessing:
         return number_of_lines
     
     def process_lines(self,closed_line_no,last_line_no,filename):
+        lines = []
         print("closed line no : {}".format(closed_line_no))
         print("last line no : {}".format(last_line_no))
-        for line_no in range(closed_line_no,last_line_no):
-            line = linecache.getline(filename,line_no)
-            print("Data in process_lines : {}".format(line))
-            log_processing.ProcessLogFiles().insert_log_data(line)
+        for line_no in range(closed_line_no+1,last_line_no+1):
+            p = subprocess.Popen(['sed', '-n', '{} p'.format(line_no),filename], stdout=subprocess.PIPE, 
+                                                stderr=subprocess.PIPE)
+            result, err = p.communicate()
+            if p.returncode != 0:
+                raise IOError(err)
+            else:
+                print("Line : {}".format(result))
+                print("Type : {}".format(type(result)))
+                lines.append(result)
+            # print("Line_no : {}".format(line_no))
+            # line = linecache.getline(filename,line_no)
+            # print("Data in process_lines : {}".format(line))
+            # log_processing.ProcessLogFiles().insert_log_data(line)
+        log_processing.ProcessLogFiles().insert_log_data(lines)
         self.update_line_no(log_processing.ProcessLogFiles().get_total_number_of_lines(filename),filename.split('.')[0])
 
     def tail(self,filename):

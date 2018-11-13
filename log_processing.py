@@ -4,6 +4,7 @@ __author__ = "Akshay Nar"
 from pygrok import Grok
 from pymongo import MongoClient
 from datetime import datetime,timedelta
+import subprocess
 
 class ProcessLogFiles:
     filename = "/home/user/Personal-Work/log_problem/out.log"
@@ -20,6 +21,10 @@ class ProcessLogFiles:
     filename_key = "filename"
 
     def process_logic(self):
+        line_no = self.get_total_number_of_lines(self.filename)
+        nos_of_line = self.file_len(self.filename)
+        print("No of lines : {}".format(nos_of_line))
+        print("Total no of lines : {}".format(line_no))
         self.insert_data_from_file(self.filename)
         self.format_data()
         self.insert_file_no(self.filename)
@@ -52,15 +57,15 @@ class ProcessLogFiles:
         self.insert_log_data(text)
     
     def insert_log_data(self,data):
-        print("Data : {}".format(data))
+        print("Line ------ : {}".format(data))
         for line in data:
-            print("+++++++ : {} ".format(line))
             for phrase in self.keep_phrases:
                 if phrase in line:
                     pattern = '%{TIMESTAMP_ISO8601:timestamp}%{SPACE}(\[%{WORD:pid}%{SPACE}%{POSINT:pid}])%{SPACE}(\[%{NUMBER:responsetime}?ms])%{SPACE}(\[%{WORD:uid}\s+%{WORD:uidname}])%{SPACE}(\[%{LOGLEVEL:loglevel}])%{SPACE}(%{URIPATHPARAM:request})%{SPACE}%{GREEDYDATA:syslog_message}'
                     grok = Grok(pattern)
                     grok_json = grok.match(line)
                     post_id = self.insert_data(grok_json)
+                    print("Grok json : {}".format(grok_json))
                     # post_id = self.collection.insert_one(grok_json).inserted_id
                     print(post_id)
                     self.format_single_doc(post_id,grok_json)
@@ -79,6 +84,14 @@ class ProcessLogFiles:
         self.collection.update({'_id':doc_id},{'$set':{self.timestamp : time}})
         self.collection.update({'_id':doc_id},{'$set':{self.responsetime : rtime}})
 
+    def file_len(self,fname):
+        p = subprocess.Popen(['wc', '-l', fname], stdout=subprocess.PIPE, 
+                                                stderr=subprocess.PIPE)
+        result, err = p.communicate()
+        if p.returncode != 0:
+            raise IOError(err)
+        return int(result.strip().split()[0])
+    
     def get_total_number_of_lines(self,filename):
         return sum(1 for line in open(filename))
 
